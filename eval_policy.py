@@ -65,7 +65,7 @@ def load_models(opt, data_path, device='cuda'):
     elif path.exists(opt.mfile):
         forward_model = torch.load(opt.mfile)
     else:
-        raise runtime_error(f'couldn\'t find file {opt.mfile}')
+        raise RuntimeError(f'couldn\'t find file {opt.mfile}')
 
     if type(forward_model) is dict:
         forward_model = forward_model['model']
@@ -175,7 +175,7 @@ def parse_args():
     # planning params
     parser.add_argument('-method', type=str, default='bprop',
                         help='[bprop|policy-MPUR|policy-MPER|policy-IL]')
-    parser.add_argument('-batch_size', type=int, default=1, help=' ')
+    parser.add_argument('-batch_size', type=int, default=2, help=' ')
     parser.add_argument('-n_batches', type=int, default=200, help=' ')
     parser.add_argument('-lrt', type=float, default=0.01, help=' ')
     parser.add_argument('-ncond', type=int, default=20, help=' ')

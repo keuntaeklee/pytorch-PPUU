@@ -20,18 +20,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-seed', type=int, default=1)
 parser.add_argument('-v', type=int, default=4)
 parser.add_argument('-dataset', type=str, default='i80')
-parser.add_argument('-model', type=str, default='fwd-cnn')
+parser.add_argument('-model', type=str, default='fwd-cnn-vae-fp')
 parser.add_argument('-layers', type=int, default=3, help='layers in frame encoder/decoders')
 parser.add_argument('-data_dir', type=str, default='traffic-data/state-action-cost/data_i80_v0/')
 parser.add_argument('-model_dir', type=str, default='models')
 parser.add_argument('-ncond', type=int, default=20, help='number of conditioning frames')
 parser.add_argument('-npred', type=int, default=20, help='number of predictions to make with unrolled fwd model')
-parser.add_argument('-batch_size', type=int, default=8)
+parser.add_argument('-batch_size', type=int, default=16)
 parser.add_argument('-nfeature', type=int, default=256)
-parser.add_argument('-beta', type=float, default=0.0, help='coefficient for KL term in VAE')
+parser.add_argument('-beta', type=float, default=1e-6, help='coefficient for KL term in VAE')
 parser.add_argument('-ploss', type=str, default='hinge')
-parser.add_argument('-z_dropout', type=float, default=0.0, help='set z=0 with this probability')
-parser.add_argument('-dropout', type=float, default=0.0, help='regular dropout')
+parser.add_argument('-z_dropout', type=float, default=0.5, help='set z=0 with this probability')
+parser.add_argument('-dropout', type=float, default=0.1, help='regular dropout')
 parser.add_argument('-nz', type=int, default=32)
 parser.add_argument('-lrt', type=float, default=0.0001)
 parser.add_argument('-grad_clip', type=float, default=5.0)
@@ -161,6 +161,7 @@ def train(nbatches, npred):
 
         # VAEs get NaN loss sometimes, so check for it
         if not math.isnan(loss.item()):
+            print(f"Batch {i+1}/{nbatches} loss {loss.item()}, end='\r'")
             loss.backward(retain_graph=False)
             if not math.isnan(utils.grad_norm(model).item()):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)
@@ -202,9 +203,12 @@ writer = utils.create_tensorboard_writer(opt)
 
 print('[training]')
 for i in range(200):
+    print(f"Iteration {n_iter}, {i+1}/200")
     t0 = time.time()
     train_losses = train(opt.epoch_size, opt.npred)
     valid_losses = test(int(opt.epoch_size / 2))
+    print(f"Train losses: {train_losses}")
+    print(f"Val losses: {valid_losses}")
 
     if writer is not None:
         writer.add_scalar('Loss/train_state_img', train_losses[0], i)
@@ -219,7 +223,7 @@ for i in range(200):
     model.cpu()
     torch.save({'model': model,
                 'optimizer': optimizer.state_dict(),
-                'n_iter': n_iter}, opt.model_file + '.model')
+                'n_iter': n_iter}, opt.model_file + f'.step{n_iter}.model')
     if (n_iter/opt.epoch_size) % 10 == 0:
         torch.save(model, opt.model_file + f'.step{n_iter}.model')
     model.cuda()

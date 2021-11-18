@@ -45,12 +45,13 @@ if path.exists(model_path):
 elif path.exists(opt.mfile):
     model = torch.load(opt.mfile)
 else:
-    raise runtime_error(f'couldn\'t find file {opt.mfile}')
+    raise RuntimeError(f'couldn\'t find file {opt.mfile}')
+
+if type(model) is dict: model = model['model']
 
 if not hasattr(model.encoder, 'n_channels'):
     model.encoder.n_channels = 3
 
-if type(model) is dict: model = model['model']
 model.opt.lambda_l = opt.lambda_l  # used by planning.py/compute_uncertainty_batch
 model.opt.lambda_o = opt.lambda_o  # used by planning.py/compute_uncertainty_batch
 if opt.value_model != '':
@@ -88,7 +89,7 @@ model.eval()
 
 
 def start(what, nbatches, npred):
-    train = True if what is 'train' else False
+    train = True if what == 'train' else False
     model.train()
     model.policy_net.train()
     n_updates, grad_norm = 0, 0
@@ -171,7 +172,7 @@ for i in range(500):
         optimizer=optimizer.state_dict(),
         opt=opt,
         n_iter=n_iter,
-    ), opt.model_file + '.model')
+    ), opt.model_file + f'step{n_iter}.model')
     if (n_iter / opt.epoch_size) % 10 == 0:
         torch.save(dict(
             model=model,

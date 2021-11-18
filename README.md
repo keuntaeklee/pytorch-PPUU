@@ -198,6 +198,10 @@ This is done by running:
 ```bash
 python train_{MPUR,MPER,IL}.py -model_dir <fm_load_path> -mfile <fm_filename>
 ```
+Example of training a policy with the pretrained forward model (provided at the end of this README):
+```bash
+python train_MPUR.py -model=fwd-cnn-vae-fp -policy=policy-gauss -nfeature=256 -npred=30 -u_reg=0.05 -lambda_l=0.2 -lambda_a=0.0 -gamma=0.99 -lrt=0.0 -learned_cost -seed=1 -batch_size=2 -mfile model=fwd-cnn-vae-fp-layers=3-bsize=64-ncond=20-npred=20-lrt=0.0001-nfeature=256-dropout=0.1-nz=32-beta=1e-06-zdropout=0.5-gclip=5.0-warmstart=1-seed=1.step200000.model
+```
 
 ## Evaluating the agent
 
@@ -207,7 +211,10 @@ Type `-h` to see other options and details.
 ```bash
 python eval_policy.py -model_dir <load_path> -policy_model <policy_filename> -method policy-{MPUR,MPER,IL}
 ```
-
+Example:
+```bash
+python eval_policy.py -method=policy-MPUR -policy_model=svg-policy-gauss-model=vae-zdropout=0.5-policy-gauss-nfeature=256-npred=30-ureg=0.05-lambdal=0.2-lambdaa=0.0-gamma=0.99-lrtz=0.0-updatez=0-inferz=0-learnedcost=1-seed=1-novalue.model -mfile=model=fwd-cnn-vae-fp-layers=3-bsize=64-ncond=20-npred=20-lrt=0.0001-nfeature=256-dropout=0.1-nz=32-beta=1e-06-zdropout=0.5-gclip=5.0-warmstart=1-seed=1.step200000.model
+```
 You can also specify `-method bprop` to perform "brute force" planning, which will be computationally expensive.
 
 ### Parallel evaluation

@@ -64,6 +64,7 @@ elif opt.layers == 4:
 opt.hidden_size = opt.nfeature*opt.h_height*opt.h_width
 
 model = torch.load(opt.model_dir + opt.mfile)
+if type(model) is dict: model = model['model']
 cost = models.CostPredictor(opt).cuda()
 model.intype('gpu')
 optimizer = optim.Adam(cost.parameters(), opt.lrt)
@@ -77,10 +78,11 @@ def train(nbatches, npred):
     for i in range(nbatches):
         optimizer.zero_grad()
         inputs, actions, targets, _, _ = dataloader.get_batch_fm('train', npred)
-        pred, _ = model(inputs, actions, targets, z_dropout=0)
+        pred, _ = model(inputs[:2], actions, targets, z_dropout=0)
         pred_cost = cost(pred[0].view(opt.batch_size*opt.npred, 1, 3, opt.height, opt.width), pred[1].view(opt.batch_size*opt.npred, 1, 4))
         loss = F.mse_loss(pred_cost.view(opt.batch_size, opt.npred, 2), targets[2])
         if not math.isnan(loss.item()):
+            print(f"Batch {i+1}/{nbatches} loss {loss.item()}, end='\r'")
             loss.backward(retain_graph=False)
             if not math.isnan(utils.grad_norm(model).item()):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)
@@ -96,7 +98,7 @@ def test(nbatches, npred):
     total_loss = 0
     for i in range(nbatches):
         inputs, actions, targets, _, _ = dataloader.get_batch_fm('valid', npred)
-        pred, _ = model(inputs, actions, targets, z_dropout=0)
+        pred, _ = model(inputs[:2], actions, targets, z_dropout=0)
         pred_cost = cost(pred[0].view(opt.batch_size*opt.npred, 1, 3, opt.height, opt.width), pred[1].view(opt.batch_size*opt.npred, 1, 4))
         loss = F.mse_loss(pred_cost.view(opt.batch_size, opt.npred, 2), targets[2])
         if not math.isnan(loss.item()):
@@ -112,14 +114,18 @@ writer = utils.create_tensorboard_writer(opt)
 print('[training]')
 n_iter = 0
 for i in range(200):
+    print(f"Iteration {n_iter}, {i+1}/200")
     t0 = time.time()
     train_loss = train(opt.epoch_size, opt.npred)
     valid_loss = test(int(opt.epoch_size / 2), opt.npred)
+    print(f"Train losses: {train_loss}")
+    print(f"Val losses: {valid_loss}")
+
     n_iter += opt.epoch_size
     model.intype('cpu')
     torch.save({'model': cost,
                 'optimizer': optimizer.state_dict(),
-                'n_iter': n_iter}, opt.model_file + '.model')
+                'n_iter': n_iter}, opt.model_file + f'.step{n_iter}.model')
     if (n_iter/opt.epoch_size) % 10 == 0:
         torch.save({'model': cost,
                     'optimizer': optimizer.state_dict(),

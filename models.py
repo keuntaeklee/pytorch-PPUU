@@ -75,7 +75,8 @@ class encoder(nn.Module):
 
     def forward(self, images, states=None, actions=None):
         bsize = images.size(0)
-        h = self.f_encoder(images.view(bsize, self.n_inputs * self.n_channels, self.opt.height, self.opt.width))
+        # h = self.f_encoder(images.view(bsize, self.n_inputs * self.n_channels, self.opt.height, self.opt.width))
+        h = self.f_encoder(images.view(bsize, -1, self.opt.height, self.opt.width))
         if states is not None:
             h = h + self.s_encoder(states.contiguous().view(bsize, -1)).view(h.size())
         if actions is not None:
@@ -793,7 +794,7 @@ class StochasticPolicy(nn.Module):
         super().__init__()
         self.opt = opt
         self.n_channels = n_channels
-        self.encoder = encoder(opt, a_size=0, n_inputs=opt.ncond)
+        self.encoder = encoder(opt, a_size=0, n_inputs=opt.ncond, n_channels=n_channels)
         self.n_outputs = opt.n_actions if output_dim is None else output_dim
         self.hsize = opt.nfeature * self.opt.h_height * self.opt.h_width
         self.proj = nn.Linear(self.hsize, opt.n_hidden)
@@ -849,7 +850,7 @@ class StochasticPolicy(nn.Module):
         logvar = self.logvar_net(h).view(bsize, self.n_outputs)
         logvar = torch.clamp(logvar, max=4.0)
         std = logvar.mul(0.5).exp_()
-        eps = torch.randn(bsize, n_samples, self.n_outputs).cuda()  # .cuda() is FUCKING wrong!
+        eps = torch.randn(bsize, n_samples, self.n_outputs).cuda()  # .cuda() is wrong!
         a = eps * std.view(bsize, 1, self.n_outputs) * std_mult
         a = a + mu.view(bsize, 1, self.n_outputs)
         # a = 3 * torch.tanh(a)
