@@ -208,7 +208,7 @@ def parse_args():
          'zeroact=0-zmult=0-dropout=0.1-nz=32-beta=0.0-zdropout=0.5-gclip=5.0-warmstart=1-seed=1.step200000.model'
     M5 = 'model=fwd-cnn-vae-fp-layers=3-bsize=64-ncond=20-npred=20-lrt=0.0001-nfeature=256-dropout=0.1-nz=32-' + \
          'beta=1e-06-zdropout=0.5-gclip=5.0-warmstart=1-seed=1.step400000.model'
-    parser.add_argument('-mfile', type=str, default=M5, help=' ')
+    parser.add_argument('-mfile', type=str, default=M1, help=' ')
     parser.add_argument('-value_model', type=str, default='', help=' ')
     parser.add_argument('-policy_model', type=str, default='', help=' ')
     parser.add_argument('-save_sim_video', action='store_true',
@@ -311,7 +311,7 @@ def process_one_episode(opt,
             a = a.squeeze().cpu().view(1, 2).numpy()
         elif opt.method == 'policy-MPER':
             a, entropy, mu, std = forward_model.policy_net(
-                input_images,
+                input_images[:, :3],
                 input_states,
                 sample=True,
                 normalize_inputs=True,
@@ -320,7 +320,7 @@ def process_one_episode(opt,
             a = a.cpu().view(1, 2).numpy()
         elif opt.method == 'policy-MPUR':
             a, entropy, mu, std = forward_model.policy_net(
-                input_images,
+                input_images[:, :3],
                 input_states,
                 sample=True,
                 normalize_inputs=True,
